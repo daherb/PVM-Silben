@@ -23,7 +23,6 @@ void read_frequency_list(string filename)
 }
 int main(int argc, char ** argv)
 {
-  mtrace();
   ofstream log;
   log.open("/tmp/silben-master.log");
   int sbuf = pvm_initsend(PvmDataDefault);
@@ -58,6 +57,7 @@ int main(int argc, char ** argv)
 	    {
 	      pvm_upkstr(word);
 	      pvm_upkstr(tree);
+	      log << "Unpacked " << word << " and " << tree << endl;
 	      tree_list[string(word)] = string(tree);
 	    }
 	}
@@ -85,5 +85,4 @@ int main(int argc, char ** argv)
   free(word);
   free(tree);
   log.close();
-  muntrace();
 }
