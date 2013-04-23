@@ -44,7 +44,7 @@ int main(int argc, char ** argv)
   log << "finished spawning" << endl;
   unordered_map<string,int>::iterator it = frequency_list.begin();
   char *word = (char *) malloc(48);
-  char *tree = (char *) malloc(2048);
+  char *tree = (char *) malloc(1024*1024);
   log << "looping" << endl;
   while (it != frequency_list.end())
     {
@@ -52,31 +52,37 @@ int main(int argc, char ** argv)
       if (pvm_probe(-1,DATA))
 	{
 	  int recbuf=pvm_recv(-1,DATA);
-	  log << "got DATA" << endl;
-	  for (int ct = 0; ct < BLOCK_SIZE; ct++)
+	  log << "got DATA " << endl;
+	  int block_size;
+	  pvm_upkint(&block_size,1,1);
+	  log << "Recieving data block of size " << block_size << endl;
+	  for (int ct = 0; ct < block_size; ct++)
 	    {
 	      pvm_upkstr(word);
 	      pvm_upkstr(tree);
-	      log << "Unpacked " << word << " and " << tree << endl;
-	      tree_list[string(word)] = string(tree);
+	      string sword = string(word);
+	      string stree = string(tree);
+	      log << "Unpacked " << sword << " \t" << sword.size() << " and " << stree << " \t" << stree.size() << endl;
+	      tree_list[sword] = stree;
 	    }
 	}
       // Wait for a NEXT request
+      log << "Waiting for NEXT" << endl;
       int recbuf=pvm_recv(-1,NEXT);
-      log << "got NEXT" << endl;
+      log << "Received NEXT with " << recbuf << endl;
       int tid;
       pvm_bufinfo(recbuf,NULL,NULL,&tid);
       pvm_initsend(PvmDataDefault);
-      for (int ct = 0; ct < BLOCK_SIZE; ct++)
+      int block_size = BLOCK_SIZE;
+      if (frequency_list.size() < BLOCK_SIZE)
+	block_size = frequency_list.size();
+      log << "Sending data block of size " << block_size << endl;
+      pvm_pkint(&block_size,1,1);
+      for (int ct = 0; ct < block_size; ct++)
 	{
-	  if (it != frequency_list.end())
-	    {
-	      log << "Pack " << it->first << endl;
-	      pvm_pkstr((char *)it->first.c_str());
-	      it++;
-	    }
-	  else
-	    break;
+	  log << "Pack " << it->first << endl;
+	  pvm_pkstr((char *)it->first.c_str());
+	  it++;
 	}
       int sbuf = pvm_send(tid,DATA);
       log << "send DATA with " << sbuf << endl;
