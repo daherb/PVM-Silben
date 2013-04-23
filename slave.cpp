@@ -28,7 +28,7 @@ public:
   string serialize();
   string serialize(Node<T> *node);
 private:
-  void clean_up(Node<T> *n);
+  //  void clean_up(Node<T> *n);
 };
     
 class Matcher {
@@ -37,10 +37,11 @@ public:
   ~Matcher();
   void read_syllables(string filename);
   string match(string word);
-  //private:
+private:
   Tree<string> syllable_tree;
   void get_prefixes(string word, vector<string> *matches, Node<string> *current = NULL);
   Tree<string> *build_part_tree(string word);
+  void prune(Node<string> *n);
 };
 
 template<class T>
@@ -79,7 +80,7 @@ void Tree<T>::print()
 template<class T>
 void Tree<T>::print(string pre, string post, string npre, string npost, Node<T> *node)
 {
-  //  cout << pre << node->value << post << endl;
+  cout << pre << node->value << post << endl;
   for (typename vector<Node<T> *>::iterator it = node->children.begin() ; it != node->children.end(); ++it)
     {
       print(pre + npre, post + npost, npre, npost, *it);
@@ -111,9 +112,9 @@ string Tree<T>::serialize(Node<T> *node)
   return stree;
 }
 
-template<class T>
-void Tree<T>::clean_up(Node<T> *n)
-{
+//template<class T>
+//void Tree<T>::clean_up(Node<T> *n)
+//{
   // if (n != NULL)
   //   {
   //     if (n->children != NULL)
@@ -130,7 +131,7 @@ void Tree<T>::clean_up(Node<T> *n)
   //     delete n;
   //     n = NULL;
   //   }
-}
+//}
 
 Matcher::Matcher()
 {
@@ -204,6 +205,9 @@ void Matcher::read_syllables(string filename)
 string Matcher::match(string word)
 {
   Tree<string> *part = build_part_tree(word);
+  part->print();
+  prune(part->root);
+  part->print();
   return part->serialize();
 }
 
@@ -270,6 +274,28 @@ Tree<string> * Matcher::build_part_tree(string word)
   return parts;
 }
 
+void Matcher::prune(Node<string> *n)
+{
+  for (typename vector<Node<string> *>::iterator it = n->children.begin(); it != n->children.end(); it++)
+    {
+      prune(*it);
+    }
+  bool erased = true;
+  while(erased)
+    {
+      erased = false;
+      for (typename vector<Node<string> *>::iterator it = n->children.begin(); it != n->children.end(); it++)
+	{
+	  
+	  if ((*it)->children.size()==0 && (*it)->value != "$"){
+	    //	    cerr << "Erase " << (*it)->value << endl;
+	    n->children.erase(it);
+	    erased = true;
+	  }
+	}
+    }
+}
+
 int main(int argc, char ** argv)
 {
   int master=pvm_parent();
@@ -293,7 +319,11 @@ int main(int argc, char ** argv)
       int recbuf=pvm_recv(-1, DATA);
       log << "received DATA with " << recbuf << endl;
       pvm_initsend(PvmDataDefault);
-      for (int ct=0; ct < BLOCK_SIZE; ct++)
+      int block_size;
+      pvm_upkint(&block_size,1,1);
+      log << "Recieving data block of size " << block_size << endl;
+      pvm_pkint(&block_size,1,1);
+      for (int ct=0; ct < block_size; ct++)
   	{
   	  log << "Trying to unpack" << endl;
   	  // Unpack word
@@ -302,7 +332,7 @@ int main(int argc, char ** argv)
   	  // Split word
   	  log << "Trying to match" << endl;
   	  tree = m.match(string(word));
-  	  log << "Matched " << word << "to" << tree << endl;
+  	  log << "Matched " << word << " to " << tree << endl;
   	  log << word << "\t" << tree << endl;
   	  // Pack tree
   	  pvm_pkstr(word);
@@ -318,7 +348,10 @@ int main(int argc, char ** argv)
   pvm_recv(master, DIE);
   log << "received DIE" << endl;
   pvm_exit();
+  // word = "nicht";
+  // tree = m.match(string(word));
+  // cout << "Matched " << word << " to " << tree << endl;
   log.close();
-  free(word);
+  //  free(word);
   return 0;
 }
