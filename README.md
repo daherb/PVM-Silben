@@ -11,6 +11,9 @@ frequency list of words to split is a simple file
 with one word and the word count in one line separated
 by tab. The syllable list is even simpler with one syllable
 per line.
+BLOCK_SIZE is the number of words sent to a client for partitioning
+as one block to reduce natwork latency
+PER_HOST_TASK_COUNT is the number of tasks to run on each host
 
 Output
 ------
