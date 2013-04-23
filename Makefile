@@ -10,7 +10,7 @@ master: master.cpp
 ifeq ($(ERROR),1)
 	@echo "Variable PVM_ROOT or PVM_ARCH not set -> Not building master"
 else
-	g++ -std=c++0x -o silben_master master.cpp -I ${PVM_ROOT}/include -I /usr/pkg/include -L ${PVM_ROOT}/lib/${PVM_ARCH}/ -lpvm3 -Wl,-R ${PVM_ROOT}/lib/${PVM_ARCH}
+	g++ -std=c++0x -o silben_master master.cpp -I ${PVM_ROOT}/include -I /usr/pkg/include -L ${PVM_ROOT}/lib/${PVM_ARCH}/ -lpvm3 -Wl,-R ${PVM_ROOT}/lib/${PVM_ARCH} -ggdb
 endif
 
 slave: slave.cpp
