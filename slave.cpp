@@ -280,8 +280,8 @@ int main(int argc, char ** argv)
   int master=pvm_parent();
   int tid=pvm_mytid();
   ofstream log;
-  //  const char *logname=string("/tmp/silben-slave" + std::to_string(tid) + ".log").c_str();
-  const char *logname="/tmp/silben-slave.log"; //string("/tmp/silben-slave.log").c_str();
+  const char *logname=string("/tmp/silben-slave" + std::to_string(tid) + ".log").c_str();
+  // const char *logname="/tmp/silben-slave.log";
   log.open(logname);
   Matcher m;
   char *word = (char*) malloc(48);
