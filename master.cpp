@@ -1,4 +1,5 @@
 #include <unordered_map>
+#include <vector>
 #include <iostream>
 #include <fstream>
 #include <pvm3.h>
@@ -7,10 +8,11 @@
 
 using namespace std;
 
+vector<string> word_list;
 unordered_map<string,int> frequency_list;
 unordered_map<string,string> tree_list;
 
-void read_frequency_list(string filename)
+void read_word_frequency_list(string filename)
 {
   ifstream in;
   in.open(filename.c_str());
@@ -18,6 +20,7 @@ void read_frequency_list(string filename)
   int count;
   while (in >> word >> count)
     {
+      word_list.push_back(word);
       frequency_list[word] = count;
     }
 }
@@ -27,7 +30,7 @@ int main(int argc, char ** argv)
   log.open("/tmp/silben-master.log");
   int sbuf = pvm_initsend(PvmDataDefault);
   log << "read frequency list" << endl;
-  read_frequency_list(WORD_FREQ_LIST);
+  read_word_frequency_list(WORD_FREQ_LIST);
   log << "finished reading" << endl;
   log << "spawning threads" << endl;
   int host_count;
@@ -45,11 +48,10 @@ int main(int argc, char ** argv)
   log << "finished spawning" << endl;
   time_t begin_time, end_time;
   time(&begin_time);
-  unordered_map<string,int>::iterator it = frequency_list.begin();
   char *word = (char *) malloc(48);
   char *tree = (char *) malloc(1024*1024);
   log << "looping" << endl;
-  while (it != frequency_list.end())
+  while (word_list.size())
     {
       // See if DATA is pending
       while (pvm_probe(-1,DATA))
@@ -77,17 +79,16 @@ int main(int argc, char ** argv)
       pvm_bufinfo(recbuf,NULL,NULL,&tid);
       pvm_initsend(PvmDataDefault);
       int block_size = BLOCK_SIZE;
-      if (frequency_list.size() < BLOCK_SIZE)
-	block_size = frequency_list.size();
+      if (word_list.size() < BLOCK_SIZE)
+	block_size = word_list.size();
       log << "Sending data block of size " << block_size << endl;
       pvm_pkint(&block_size,1,1);
       for (int ct = 0; ct < block_size; ct++)
 	{
-	  log << "Pack " << it->first << endl;
-	  pvm_pkstr((char *)it->first.c_str());
-	  unordered_map<string,int>::iterator prev=it;
-	  it++;
-	  frequency_list.erase(prev);
+	  string sword = word_list.back();
+	  log << "Pack " << sword << endl;
+	  pvm_pkstr((char *) sword.c_str() );
+	  word_list.pop_back();
 	}
       int sbuf = pvm_send(tid,DATA);
       log << "send DATA with " << sbuf << endl;
@@ -110,19 +111,11 @@ int main(int argc, char ** argv)
 	  tree_list[sword] = stree;
 	}
     }
-  // 
-  // for(int ct = 0; ct < task_count; ct++)
-  //   {
-  //     pvm_initsend(PvmDataDefault);
-  //     int null = 0;
-  //     pvm_pkint(&null,1,1);
-  //     pvm_send(tids[ct],DATA);
-  //     log << "Send empty DATA to " << tids[ct] << endl;
-  //   }
 
   // Syncing up after end of data
   for (int ct = 0; ct < task_count; ct++)
     {
+      // Sending empty data twice to be sure to be received and unblock receive
       pvm_initsend(PvmDataDefault);
       int null = 0;
       pvm_pkint(&null,1,1);
@@ -130,6 +123,7 @@ int main(int argc, char ** argv)
       pvm_initsend(PvmDataDefault);
       pvm_send(tids[ct],DATA);
       log << "Send empty DATA to " << tids[ct] << endl;
+      // Waiting for last message
       int recbuf=pvm_recv(tids[ct],FINAL);
       log << "got FINAL " << endl;
       int block_size;
@@ -158,7 +152,7 @@ int main(int argc, char ** argv)
   ofile.open(OUTPUT_FILE);
   for (unordered_map<string,int>::iterator it = frequency_list.begin(); it != frequency_list.end(); it++)
     {
-      log << it->first << "\t" << tree_list[it->first] << "\t" << it->second << endl;
+      //      log << it->first << "\t" << tree_list[it->first] << "\t" << it->second << endl;
       ofile << it->first << "\t" << tree_list[it->first] << "\t" << it->second << endl;
     }
   ofile.close();
