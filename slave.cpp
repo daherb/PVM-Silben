@@ -112,27 +112,6 @@ string Tree<T>::serialize(Node<T> *node)
   return stree;
 }
 
-//template<class T>
-//void Tree<T>::clean_up(Node<T> *n)
-//{
-  // if (n != NULL)
-  //   {
-  //     if (n->children != NULL)
-  // 	{
-  // 	  while (n->children->size()>0)
-  // 	    {
-  // 	      Node<T> *last = n->children->back();
-  // 	      clean_up(last);
-  // 	      n->children->pop_back();
-  // 	    }
-  // 	  delete n->children;
-  // 	  n->children = NULL;
-  // 	}
-  //     delete n;
-  //     n = NULL;
-  //   }
-//}
-
 Matcher::Matcher()
 {
   
@@ -205,9 +184,9 @@ void Matcher::read_syllables(string filename)
 string Matcher::match(string word)
 {
   Tree<string> *part = build_part_tree(word);
-  part->print();
+  //  part->print();
   prune(part->root);
-  part->print();
+  //  part->print();
   return part->serialize();
 }
 
@@ -286,11 +265,11 @@ void Matcher::prune(Node<string> *n)
       erased = false;
       for (typename vector<Node<string> *>::iterator it = n->children.begin(); it != n->children.end(); it++)
 	{
-	  
 	  if ((*it)->children.size()==0 && (*it)->value != "$"){
 	    //	    cerr << "Erase " << (*it)->value << endl;
 	    n->children.erase(it);
 	    erased = true;
+	    break;
 	  }
 	}
     }
@@ -317,6 +296,9 @@ int main(int argc, char ** argv)
       log << "send NEXT with " << sbuf << endl;
       // Get words
       int recbuf=pvm_recv(-1, DATA);
+      // Stop on die-message
+      if (pvm_probe(master,DIE))
+  	break;
       log << "received DATA with " << recbuf << endl;
       pvm_initsend(PvmDataDefault);
       int block_size;
@@ -337,18 +319,21 @@ int main(int argc, char ** argv)
   	  // Pack tree
   	  pvm_pkstr(word);
   	  pvm_pkstr((char *)tree.c_str());
-  	  // Stop on die-message
-  	  if (pvm_probe(master,DIE))
-  	    break;
   	}
       // Send tree
-      sbuf=pvm_send(master,DATA);
+      if (block_size < BLOCK_SIZE)
+	{
+	  sbuf=pvm_send(master,FINAL);
+	  break;
+	}
+      else
+	sbuf=pvm_send(master,DATA);
       log << "send DATA with " << sbuf << endl;
     }
   pvm_recv(master, DIE);
   log << "received DIE" << endl;
   pvm_exit();
-  // word = "nicht";
+  // word = "studentenkorporation";
   // tree = m.match(string(word));
   // cout << "Matched " << word << " to " << tree << endl;
   log.close();
