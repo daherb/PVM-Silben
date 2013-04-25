@@ -307,15 +307,15 @@ int main(int argc, char ** argv)
       pvm_pkint(&block_size,1,1);
       for (int ct=0; ct < block_size; ct++)
   	{
-  	  log << "Trying to unpack" << endl;
+	  //  	  log << "Trying to unpack" << endl;
   	  // Unpack word
   	  pvm_upkstr(word);
-  	  log << "Unpacked " << word << endl;
+	  //  	  log << "Unpacked " << word << endl;
   	  // Split word
-  	  log << "Trying to match" << endl;
+	  //  	  log << "Trying to match" << endl;
   	  tree = m.match(string(word));
-  	  log << "Matched " << word << " to " << tree << endl;
-  	  log << word << "\t" << tree << endl;
+	  //  	  log << "Matched " << word << " to " << tree << endl;
+	  //  	  log << word << "\t" << tree << endl;
   	  // Pack tree
   	  pvm_pkstr(word);
   	  pvm_pkstr((char *)tree.c_str());

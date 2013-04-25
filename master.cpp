@@ -50,14 +50,14 @@ int main(int argc, char ** argv)
   time(&begin_time);
   char *word = (char *) malloc(48);
   char *tree = (char *) malloc(1024*1024);
-  log << "looping" << endl;
+  //  log << "looping" << endl;
   while (word_list.size())
     {
       // See if DATA is pending
       while (pvm_probe(-1,DATA))
 	{
 	  int recbuf=pvm_recv(-1,DATA);
-	  log << "got DATA " << endl;
+	  log << "got DATA with " << recbuf << endl;
 	  int block_size;
 	  pvm_upkint(&block_size,1,1);
 	  log << "Recieving data block of size " << block_size << endl;
@@ -67,12 +67,12 @@ int main(int argc, char ** argv)
 	      pvm_upkstr(tree);
 	      string sword = string(word);
 	      string stree = string(tree);
-	      log << "Unpacked " << sword << " \t" << sword.size() << " and " << stree << " \t" << stree.size() << endl;
+	      //	      log << "Unpacked " << sword << " \t" << sword.size() << " and " << stree << " \t" << stree.size() << endl;
 	      tree_list[sword] = stree;
 	    }
 	}
       // Wait for a NEXT request
-      log << "Waiting for NEXT" << endl;
+      //      log << "Waiting for NEXT" << endl;
       int recbuf=pvm_recv(-1,NEXT);
       log << "Received NEXT with " << recbuf << endl;
       int tid;
@@ -86,7 +86,7 @@ int main(int argc, char ** argv)
       for (int ct = 0; ct < block_size; ct++)
 	{
 	  string sword = word_list.back();
-	  log << "Pack " << sword << endl;
+	  //	  log << "Pack " << sword << endl;
 	  pvm_pkstr((char *) sword.c_str() );
 	  word_list.pop_back();
 	}
@@ -97,7 +97,7 @@ int main(int argc, char ** argv)
   while (pvm_probe(-1,DATA))
     {
       int recbuf=pvm_recv(-1,DATA);
-      log << "got DATA " << endl;
+      log << "got DATA with " << recbuf << endl;
       int block_size;
       pvm_upkint(&block_size,1,1);
       log << "Recieving data block of size " << block_size << endl;
@@ -107,7 +107,7 @@ int main(int argc, char ** argv)
 	  pvm_upkstr(tree);
 	  string sword = string(word);
 	  string stree = string(tree);
-	  log << "Unpacked " << sword << " \t" << sword.size() << " and " << stree << " \t" << stree.size() << endl;
+	  //	  log << "Unpacked " << sword << " \t" << sword.size() << " and " << stree << " \t" << stree.size() << endl;
 	  tree_list[sword] = stree;
 	}
     }
@@ -125,7 +125,7 @@ int main(int argc, char ** argv)
       log << "Send empty DATA to " << tids[ct] << endl;
       // Waiting for last message
       int recbuf=pvm_recv(tids[ct],FINAL);
-      log << "got FINAL " << endl;
+      log << "got FINAL with " << recbuf << endl;
       int block_size;
       pvm_upkint(&block_size,1,1);
       log << "Recieving data block of size " << block_size << endl;
